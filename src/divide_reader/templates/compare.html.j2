@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t('compare_title') }} — {{ cols|map(attribute='label')|join(' / ') }}</title>
+<style>{% include 'base.css' %}</style>
+</head>
+<body><main>
+<h1>{{ t('compare_title') }}</h1>
+<p class="mut">{{ cols|map(attribute='label')|join(' · ') }} · {{ generated }}</p>
+<table>
+  <tr><th>{{ t('measure') }}</th>{% for c in cols %}<th>{{ c.label }}<br><span class="mut">n={{ c.m.units }}, {{ t('stability') }} {{ '%.2f'|format(c.stab.mean) if c.stab.mean is not none else '—' }}</span></th>{% endfor %}
+      <th>{{ t('difference') }}</th><th>{{ t('noise') }}</th><th></th></tr>
+  {% for r in rows %}
+  <tr><td>{{ r.name }}</td>{% for v in r.vals %}<td class="num">{{ v }}</td>{% endfor %}
+      <td class="num">{{ r.diff }}</td><td class="num">{{ r.noise }}</td><td>{% if r.verdict %}<span class="tag">{{ r.verdict }}</span>{% endif %}</td></tr>
+  {% endfor %}
+</table>
+</main></body></html>

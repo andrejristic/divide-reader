@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ t('report_title') }} — {{ info.label }}</title>
+<style>{% include 'base.css' %}</style>
+</head>
+<body><main>
+<h1>{{ info.label }}</h1>
+<p class="mut">{{ t('report_title') }} · {{ generated }}</p>
+
+<h2>{{ t('sec_walked') }}</h2>
+<table>
+  <tr><th>{{ t('source') }}</th><td>{{ info.label }}{% if info.origin %} — <code>{{ info.origin }}</code>{% endif %}{% if info.walk_mode %} <span class="tag">{{ info.walk_mode }}</span>{% endif %}</td></tr>
+  <tr><th>{{ t('pages') }}</th><td>{{ info.ok_pages|length }}</td></tr>
+  <tr><th>{{ t('units') }}</th><td>{{ m.units }} ({{ info.unit_kind }})</td></tr>
+  <tr><th>{{ t('models') }}</th><td>{{ info.models|join(', ') or '—' }}</td></tr>
+  <tr><th>{{ t('rules') }}</th><td>{{ info.rules|join(', ') }}</td></tr>
+</table>
+<details><summary>{{ t('pages') }} ({{ info.ok_pages|length }})</summary>
+<table>{% for p in info.ok_pages %}<tr><td>{{ p.date }}</td><td>{{ p.snapshot }}</td><td>{% if p.url %}<a href="{{ p.url }}">{{ p.title or p.url }}</a>{% else %}{{ p.title }}{% endif %}</td></tr>{% endfor %}</table>
+</details>
+{% if info.skipped %}
+<details><summary>{{ t('skipped') }} ({{ info.skipped|length }})</summary>
+<table>{% for p in info.skipped %}<tr><td><code>{{ p.url or p.title }}</code></td><td>{{ p.status[8:] }}</td></tr>{% endfor %}</table>
+</details>
+{% endif %}
+
+<h2>{{ t('sec_measures') }}</h2>
+<table>
+  <tr><th>{{ t('measure') }}</th><th>{{ t('simple') }}</th><th>{{ t('weighted') }}</th><th>{{ t('sample') }}</th><th></th></tr>
+  {% for r in rows %}
+  <tr><td>{{ r.name }}</td><td class="num">{{ r.simple }}</td><td class="num">{{ r.weighted }}</td><td class="num">n={{ r.n }}</td>
+      <td>{% if r.units %}<details><summary>{{ t('units_link') }} ({{ r.units|length }})</summary>{% for u in r.units %}<a href="#u{{ u }}">#{{ u }}</a> {% endfor %}</details>{% endif %}</td></tr>
+  {% endfor %}
+  {% if m.s_distribution %}
+  <tr><td>{{ t('s_distribution') }}</td>
+      <td class="num">{% for k, v in m.s_distribution.simple|dictsort %}S={{ k }}: {{ v }}<br>{% endfor %}</td>
+      <td class="num">{% for k, v in m.s_distribution.weighted|dictsort %}S={{ k }}: {{ v }}<br>{% endfor %}</td>
+      <td class="num">n={{ m.units }}</td><td></td></tr>
+  {% endif %}
+  <tr><td>{{ t('stability') }}</td><td class="num" colspan="2">{{ '%.2f'|format(stab.mean) if stab.mean is not none else '—' }}
+      {% for l, v in stab.by_lang|dictsort %}<span class="tag">{{ l }}: {{ '%.2f'|format(v.mean) }} (n={{ v.n }})</span> {% endfor %}</td>
+      <td class="num">n={{ stab.n }}</td><td></td></tr>
+</table>
+
+<h2>{{ t('sec_hypotheses') }}</h2>
+{% if hyps %}
+{% for h in hyps %}
+<div class="unit"><div class="q">{{ h.text }}</div>
+<details><summary>{{ t('supports') }} ({{ h.support|length }})</summary><ul>{% for u in h.support %}<li><a href="#u{{ u }}">#{{ u }}</a> {{ texts.get(u, '') }}</li>{% endfor %}</ul></details>
+<details><summary>{{ t('against') }} ({{ h.against|length }})</summary><ul>{% for u in h.against %}<li><a href="#u{{ u }}">#{{ u }}</a> {{ texts.get(u, '') }}</li>{% endfor %}</ul></details>
+</div>
+{% endfor %}
+{% else %}<p class="mut">{{ t('none') }}</p>{% endif %}
+
+<h2>{{ t('sec_units') }}</h2>
+{% macro reading(r) %}
+<div class="reading"><div class="s {{ 'two' if r.s == 2 else '' }}">S = {{ r.s }}</div><div class="d">{{ r.desc }}</div>
+<div class="meta">{{ r.heard }} ({{ r.listeners }})
+{% for a in r.assumptions %}<br>{{ t('assumption') }}: {{ a }}{% endfor %}
+{% for a in r.anchors %}<br>{{ t('anchor') }}: „{{ a }}“{% endfor %}
+{% if r.assumed %}<br>{{ t('assumed_figures') }}: {{ r.assumed|join(', ') }}{% endif %}</div></div>
+{% endmacro %}
+{% for u in units %}
+<div class="unit" id="u{{ u.id }}">
+  <div class="mut">{{ t('unit') }} #{{ u.id }}</div>
+  <div class="q">„{{ u.text }}“</div>
+  <div class="mut">{{ t('figures') }} ({{ u.F }}): {{ u.figures|join(', ') or '—' }}</div>
+  <div class="mut">{{ u.found }}</div>
+  {% for r in u.shown %}{{ reading(r) }}{% endfor %}
+  {% if u.n_rest %}<details><summary>{{ t('more_readings', n=u.n_rest) }}</summary>
+    {% for s, rs in u.rest|dictsort %}{% for r in rs %}{{ reading(r) }}{% endfor %}{% endfor %}</details>{% endif %}
+  {% if u.rejected %}<details><summary>{{ t('rejected', n=u.rejected|length) }}</summary><table>
+    {% for r in u.rejected %}<tr><td>S={{ r.s }}</td><td><code>{{ r.desc }}</code></td><td class="mut">{{ r.reason }}</td></tr>{% endfor %}
+  </table></details>{% endif %}
+</div>
+{% endfor %}
+
+<h2>{{ t('sec_other') }}</h2>
+{% if other %}
+<table>{% for what, items in other.items() %}
+<tr><td>{{ what }}</td><td>{% for i in items %}<a href="#u{{ i.unit_id }}">#{{ i.unit_id }}</a>{% if i.amount is not none %} ({{ i.amount|round(2) }}){% endif %}{% if i.anchor %} „{{ i.anchor }}“{% endif %}<br>{% endfor %}</td></tr>
+{% endfor %}</table>
+{% else %}<p class="mut">{{ t('none') }}</p>{% endif %}
+</main></body></html>
