@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Divide Reader
+GenericName=Side counter
+Comment=Count how many sides a text sorts its figures into
+Comment[sr]=Broji u koliko strana tekst slaže figure
+Exec=divide-reader
+Icon=divide-reader
+Terminal=false
+Categories=Science;Education;Office;
+Keywords=text;analysis;sides;llm;
+StartupWMClass=divide-reader

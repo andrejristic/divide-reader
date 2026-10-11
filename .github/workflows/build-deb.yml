@@ -1,0 +1,29 @@
+# Builds the .deb on Ubuntu 22.04 so it runs on Ubuntu 22.04+ and Debian 12+
+# (a binary runs only on systems whose glibc is at least the build machine's).
+name: build-deb
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  deb:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e ".[dev]"
+      - name: Test
+        run: .venv/bin/python -m pytest -q
+      - name: Build .deb
+        run: bash packaging/build_deb.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: divide-reader-deb
+          path: dist/*.deb

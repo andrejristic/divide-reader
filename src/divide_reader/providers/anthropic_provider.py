@@ -31,7 +31,7 @@ class AnthropicProvider(Provider):
             if self.model.id in FALLBACK_MODELS:
                 resp = self.client.beta.messages.create(
                     betas=["server-side-fallback-2026-07-01"],
-                    extra_body={"fallbacks": "default"},
+                    fallbacks="default",
                     **kwargs,
                 )
             else:
