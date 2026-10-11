@@ -34,8 +34,12 @@ def sha(text: str) -> str:
 
 def html_to_doc(html: bytes | str, url: str | None = None) -> Doc | None:
     raw = html if isinstance(html, str) else html.decode("utf-8", "replace")
-    text = trafilatura.extract(raw, url=url, include_comments=False, include_tables=False,
-                               favor_precision=True)
+    # Precise extraction first; old table-based pages need the default, then the recall mode.
+    text = None
+    for mode in ({"favor_precision": True}, {}, {"favor_recall": True}):
+        text = trafilatura.extract(raw, url=url, include_comments=False, include_tables=False, **mode)
+        if text and len(text) >= MIN_CHARS:
+            break
     if not text:
         return None
     meta = trafilatura.extract_metadata(raw)

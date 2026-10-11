@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import py3langid
 
 CTX_CHARS = 1500
+MIN_WORDS = 3  # shorter "sentences" (menu items, stray punctuation) are not read
 
 ABBREV = {
     # Serbian / Croatian / Bosnian
@@ -39,7 +40,8 @@ def paragraphs(text: str) -> list[str]:
     blocks = re.split(r"\n\s*\n", text) if re.search(r"\n\s*\n", text) else text.split("\n")
     out = []
     for b in blocks:
-        b = re.sub(r"\s*\n\s*", " ", b).strip()
+        b = re.sub(r"\s*\n\s*", " ", b)
+        b = re.sub(r"\[(\d+|[a-z]|citation needed|потребан извор)\]", "", b).strip()  # footnote marks
         if b:
             out.append(b)
     return out
@@ -95,6 +97,8 @@ def split_units(text: str, kind: str = "sentence", page_lang: str | None = None)
             prev_par = pars[pi - 1] if pi > 0 else ""
             next_par = pars[pi + 1] if pi + 1 < len(pars) else ""
             for si, s in enumerate(sents):
+                if len(re.findall(r"\w+", s)) < MIN_WORDS:
+                    continue
                 before = " ".join(filter(None, [prev_par, " ".join(sents[:si])]))
                 after = " ".join(filter(None, [" ".join(sents[si + 1:]), next_par]))
                 lang = detect_lang(s) if len(s) >= 80 else page_lang

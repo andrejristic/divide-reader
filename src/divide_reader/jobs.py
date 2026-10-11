@@ -112,14 +112,17 @@ def run(spec: JobSpec, provider: Provider, project: Path | None = None,
         reader = Reader(store, provider, budget, spec.report_lang, log=log, stop=stop)
         try:
             reader.read_units(units, progress=(lambda i, n: progress("read", i, n)) if progress else None)
-            twice = random.Random(spec.job_id).sample(units, max(1, round(len(units) * spec.second_round_share))) \
-                if units and spec.second_round_share > 0 else []
+            # A second round of all five listeners on a share of the read units measures stability.
+            # Trivial units (F <= 1) need no model, so they are not candidates.
+            candidates = [u for u in units if store.one(
+                "SELECT 1 FROM round WHERE unit_id=? AND round_no=1 AND complete=1 AND mode != 'trivial'", (u,))]
+            k = round(len(candidates) * spec.second_round_share) if spec.second_round_share > 0 else 0
+            twice = random.Random(spec.job_id).sample(candidates, max(1, k)) if candidates and k >= 0 and \
+                spec.second_round_share > 0 else []
             for i, uid in enumerate(twice):
                 if stop.is_set():
                     break
                 if store.one("SELECT 1 FROM round WHERE unit_id=? AND round_no=2 AND complete=1", (uid,)):
-                    continue
-                if store.one("SELECT mode FROM round WHERE unit_id=? AND round_no=1", (uid,))["mode"] == "trivial":
                     continue
                 try:
                     reader.read_unit(uid, new_round=True)

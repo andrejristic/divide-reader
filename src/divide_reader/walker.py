@@ -126,10 +126,12 @@ def walk(store: Store, start: str, mode: str = "list", max_pages: int = 50, max_
     sid = store.add_source(label or host, kind, start, mode)
     queue: deque[tuple[str, int]] = deque([(start, 0)])
     seen = {start}
-    ok_pages = 0
-    while queue and ok_pages < max_pages and not stop.is_set():
+    ok_pages = fetches = 0
+    max_fetches = max_pages * 4  # stop even when most pages are skipped
+    while queue and ok_pages < max_pages and fetches < max_fetches and not stop.is_set():
         url, hops = queue.popleft()
         pages, html = fetch_one(store, fetcher, sid, url)
+        fetches += 1
         ok_pages += len(pages)
         log(f"[{ok_pages}/{max_pages}] {url} -> {len(pages)} page(s)")
         if html is None or hops >= max_hops:
