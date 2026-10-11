@@ -34,7 +34,7 @@ Definitions:
 """
 
 FIGURES_TASK = """Task: list the EXPLICIT figures in the unit below.
-- Only figures that stand in the text itself (nouns, names, pronouns referring to agents or patients, things acted on).
+- Only figures that stand in the UNIT itself (nouns, names, pronouns referring to agents or patients, things acted on). The text before and after is context only: never take figures from it.
 - Do not add implied figures. Do not list the same figure twice under different words.
 - Write each figure as a short phrase copied or minimally lemmatized from the text, in the text's language.
 - Order them by first appearance.
@@ -48,7 +48,7 @@ FIGURES_SCHEMA = {
     "required": ["figures"],
 }
 
-_S = {"type": "string", "maxLength": 300}
+_S = {"type": "string", "maxLength": 200}
 
 _OTHER = {
     "type": "array",
@@ -111,7 +111,8 @@ PROPOSE_SCHEMA = {
 
 ENUMERATE_TASK = """Task: below is EVERY possible way to sort the unit's explicit figures into sides. For EACH numbered partition decide whether the text supports it as a way the speaker sorts the figures, heard from your position as a listener.
 - supported=true: give the assumption (from where the speaker speaks for this to hold) and the anchor (short quote from the unit).
-- supported=false: give a short reason; assumption and anchor may be empty strings.
+- supported=false: give a reason of a few words; assumption and anchor are empty strings.
+- Keep every text field short: one clause, anchors of a few words.
 - Judge every id exactly once.
 - assumed_readings: readings that need a figure NOT in the text (e.g. an implied judge of the result). Write sides as lists of figure labels (f0, f1, ...) and the new figure names; list the new names in assumed_figures. Leave empty if none.
 - other_counts: anything else in the unit that can be counted but is not a count of sides (e.g. times, occasions), with what is counted, the amount (or null) and the anchor. Leave empty if none.

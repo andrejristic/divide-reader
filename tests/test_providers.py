@@ -102,3 +102,18 @@ def test_claude_request_shape():
     assert seen["b"]["fallbacks"] == "default"
     assert "server-side-fallback-2026-07-01" in seen["h"]["anthropic-beta"]
     assert "temperature" not in seen["b"]
+
+
+def test_truncated_answer_retried_with_more_room():
+    sizes = []
+
+    def h(req):
+        body = json.loads(req.content)
+        sizes.append(body["max_tokens"])
+        if len(sizes) == 1:
+            return httpx.Response(200, json={"choices": [{"message": {"content": '{"figures": ["a'},
+                                                          "finish_reason": "length"}]})
+        return ok('{"figures": ["a"]}')
+    res = make(h).chat_json("s", "u", SCHEMA, "figures", max_tokens=100)
+    assert res.data == {"figures": ["a"]}
+    assert sizes == [100, 200]

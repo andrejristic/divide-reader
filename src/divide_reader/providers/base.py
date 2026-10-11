@@ -19,6 +19,10 @@ class RateLimited(Exception):
         self.retry_at = retry_at
 
 
+class Truncated(ValueError):
+    """The answer hit the token limit and was cut off."""
+
+
 class BudgetExceeded(Exception):
     """The job reached its cost cap."""
 
@@ -166,6 +170,9 @@ class Provider:
                 res = self._call(system, user, schema, name, max_tokens)
                 validate(res.data, schema)
                 return res
+            except Truncated as e:
+                last = e
+                max_tokens = min(max_tokens * 2, 32000)  # cut off: ask again with more room
             except (ValueError, json.JSONDecodeError) as e:
                 last = e
         raise LLMError(f"model did not return valid JSON after {retries + 1} tries: {last}")

@@ -8,7 +8,7 @@ import time
 import httpx
 
 from .base import (LLMError, ModelSpec, Provider, ProviderSpec, RateLimited, Result, Throttle,
-                   Usage, parse_json, price_cost)
+                   Truncated, Usage, parse_json, price_cost)
 
 MAX_BLOCKING_WAIT = 120.0  # seconds; longer waits pause the job instead
 
@@ -74,9 +74,12 @@ class OpenAICompat(Provider):
             break
         payload = r.json()
         try:
-            text = payload["choices"][0]["message"]["content"] or ""
+            choice = payload["choices"][0]
+            text = choice["message"]["content"] or ""
         except (KeyError, IndexError) as e:
             raise LLMError(f"unexpected response: {str(payload)[:500]}") from e
+        if choice.get("finish_reason") == "length":
+            raise Truncated(f"answer cut off at {max_tokens} tokens")
         u = payload.get("usage") or {}
         usage = Usage(in_tokens=u.get("prompt_tokens", 0), out_tokens=u.get("completion_tokens", 0),
                       cost_usd=u.get("cost"))

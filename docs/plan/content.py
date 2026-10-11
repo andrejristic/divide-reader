@@ -154,7 +154,7 @@ table([
     ["Plaćeni online", "Claude, OpenAI, Grok, OpenRouter", "Prijava preko preglednika"],
 ])
 p("Na početnom ekranu, odmah vidljivo, stoje dvije stvari:")
-b("**Garancija ispravnog odgovora.** Ugrađeni llama.cpp gramatikom prisiljava odgovor u zadatu JSON šemu, pa lokalni model ne može vratiti neispravan odgovor. Online modeli to ne garantuju jednako, pa program kod njih provjerava odgovor i ponavlja upit kad nije ispravan.")
+b("**Garancija ispravnog odgovora.** Ugrađeni llama.cpp gramatikom prisiljava odgovor u zadatu JSON šemu, pa lokalni model ne može vratiti neispravan odgovor. Ako odgovoru ponestane prostora prije kraja, program ga traži ponovo s više prostora. Online modeli to ne garantuju jednako, pa program kod njih provjerava odgovor i ponavlja upit kad nije ispravan.")
 b("**Direktni linkovi za lokalne modele.** Za svaki preporučeni model stoji direktan link za preuzimanje i dugme „Preuzmi“. Program preporučuje model prema količini RAM-a na mašini.")
 h2("Prijava na online modele")
 p("Kad korisnik na početku izabere online model, program uvijek otvori zadani web preglednik:")

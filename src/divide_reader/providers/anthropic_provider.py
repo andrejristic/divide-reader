@@ -6,7 +6,7 @@ import time
 
 import anthropic
 
-from .base import LLMError, ModelSpec, Provider, ProviderSpec, RateLimited, Result, Usage, price_cost
+from .base import LLMError, ModelSpec, Provider, ProviderSpec, RateLimited, Result, Truncated, Usage, price_cost
 
 # Models that accept the server-side refusal fallback ("default" routing).
 FALLBACK_MODELS = {"claude-opus-5-5", "claude-sonnet-5-5"}
@@ -46,6 +46,8 @@ class AnthropicProvider(Provider):
             raise LLMError(f"Claude: cannot connect: {e}") from e
         if resp.stop_reason == "refusal":
             raise LLMError("Claude declined this request")
+        if resp.stop_reason == "max_tokens":
+            raise Truncated("answer cut off")
         text = next((b.text for b in resp.content if b.type == "text"), "")
         usage = Usage(in_tokens=resp.usage.input_tokens, out_tokens=resp.usage.output_tokens)
         usage.cost_usd = price_cost(self.model, usage)

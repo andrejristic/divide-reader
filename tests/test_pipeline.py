@@ -36,6 +36,11 @@ def test_vote_figures_majority_and_order():
     assert all(v >= 2 for _, v in got)
 
 
+def test_vote_figures_drops_figures_from_context():
+    got = vote_figures([["radnici", "čistač"], ["radnike", "čistač"], ["radnika"]], "preko leđa radnika")
+    assert len(got) == 1 and got[0][1] == 3
+
+
 def test_free_reading_key_with_assumed():
     rgs, assumed = free_reading_key([["f0"], ["website"], ["judge"]], ["ja", "website"])
     assert assumed == ["judge"]

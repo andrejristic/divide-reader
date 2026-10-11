@@ -48,7 +48,7 @@ def find_server(prefer_gpu: bool | None = None) -> tuple[Path, str]:
 
 class LocalServer:
     def __init__(self, model_path: Path, extra_args: tuple[str, ...] = (), port: int = LOCAL_PORT,
-                 ctx: int = 8192, prefer_gpu: bool | None = None):
+                 ctx: int = 16384, prefer_gpu: bool | None = None):
         self.model_path = Path(model_path)
         self.extra_args = extra_args
         self.port = port

@@ -44,6 +44,10 @@ class Budget:
         self.store.commit()
 
 
+def _stem_key(s: str) -> str:
+    return " ".join(w[:5] for w in _norm(s).split())
+
+
 def _norm(s: str) -> str:
     s = unicodedata.normalize("NFKC", s).casefold().strip()
     return re.sub(r"[\W_]+", " ", s).strip()
@@ -157,7 +161,7 @@ class Reader:
         id_map = {i + 1: rgs for i, rgs in enumerate(all_rgs)}
         shown = [(pid, P.describe(rgs, [f"f{i}" for i in range(F)])) for pid, rgs in id_map.items()]
         system, user = prompts.enumerate_prompt(listener, block, figures, shown, self.report_lang, self.examples())
-        res = self._call(system, user, prompts.ENUMERATE_SCHEMA, "judgements", max_tokens=200 + 120 * len(all_rgs))
+        res = self._call(system, user, prompts.ENUMERATE_SCHEMA, "judgements", max_tokens=400 + 160 * len(all_rgs))
         pid = self._save_pass(rid, listener, res)
         judged: dict[int, dict] = {}
         for j in res.data["judgements"]:
@@ -179,7 +183,7 @@ class Reader:
 
     def _propose_pass(self, rid: int, unit_id: int, listener: str, block: str, figures: list[str]) -> None:
         system, user = prompts.propose_prompt(listener, block, figures, self.report_lang, self.examples())
-        res = self._call(system, user, prompts.PROPOSE_SCHEMA, "readings", max_tokens=6000)
+        res = self._call(system, user, prompts.PROPOSE_SCHEMA, "readings", max_tokens=8000)
         pid = self._save_pass(rid, listener, res)
         for r in res.data["readings"]:
             self._save_free(pid, r, figures, require_assumed=False)
@@ -231,17 +235,19 @@ def vote_figures(attempts: list[list[str]], text: str) -> list[tuple[str, int]]:
     for att in attempts:
         seen = set()
         for f in att:
-            n = _norm(f)
+            n = _stem_key(f)  # inflected forms of the same figure vote together
             if not n or n in seen:
                 continue
             seen.add(n)
             votes[n] += 1
             forms.setdefault(n, Counter())[f.strip()] += 1
-    kept = [n for n, v in votes.items() if v >= need]
     low = _norm(text)
+    stems = {w[:4] for w in low.split()}
+    # A figure must come from the unit: at least one of its words (by stem) appears in it.
+    kept = [n for n, v in votes.items() if v >= need and any(w[:4] in stems for w in n.split())]
 
     def pos(n: str) -> int:
-        i = low.find(n)
+        i = low.find(n.split()[0])
         return i if i >= 0 else len(low) + 1
 
     kept.sort(key=lambda n: (pos(n), n))
