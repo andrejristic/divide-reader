@@ -15,13 +15,17 @@ MAX_BLOCKING_WAIT = 120.0  # seconds; longer waits pause the job instead
 
 class OpenAICompat(Provider):
     def __init__(self, spec: ProviderSpec, model: ModelSpec, api_key: str | None,
-                 base_url: str | None = None, timeout: float = 600.0):
+                 base_url: str | None = None, timeout: float | None = None):
         self.spec = spec
         self.model = model
         self.api_key = api_key
         self.base_url = (base_url or spec.base_url).rstrip("/")
         self.throttle = Throttle(spec.rpm)
-        self.client = httpx.Client(timeout=timeout)
+        if timeout is None:
+            # Local models on a CPU can need many minutes for one long answer.
+            timeout = 3600.0 if spec.group in ("local", "ollama") else 600.0
+        self.timeout = timeout
+        self.client = httpx.Client(timeout=httpx.Timeout(timeout, connect=10.0))
 
     def _headers(self) -> dict[str, str]:
         h = {"Content-Type": "application/json", **self.spec.extra_headers}
@@ -54,6 +58,9 @@ class OpenAICompat(Provider):
             self.throttle.wait()
             try:
                 r = self.client.post(f"{self.base_url}/chat/completions", headers=self._headers(), json=body)
+            except httpx.ReadTimeout as e:
+                raise LLMError(f"{self.spec.label}: no answer within {self.timeout / 60:.0f} min "
+                               "(model too slow for this unit)") from e
             except httpx.TransportError as e:
                 attempt += 1
                 if attempt > 4:
