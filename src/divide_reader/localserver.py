@@ -6,8 +6,11 @@ Intel). Vulkan is used when a Vulkan device is present, otherwise cpu.
 """
 from __future__ import annotations
 
+import atexit
+import ctypes
 import os
 import shutil
+import signal
 import subprocess
 import time
 from pathlib import Path
@@ -16,6 +19,14 @@ import httpx
 
 from . import paths
 from .providers.catalog import LOCAL_PORT
+
+
+def _die_with_parent() -> None:
+    """Ask Linux to stop llama-server when this program exits, even if it is killed."""
+    try:
+        ctypes.CDLL("libc.so.6", use_errno=True).prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
+    except OSError:
+        pass
 
 
 def has_vulkan_gpu() -> bool:
@@ -71,7 +82,9 @@ class LocalServer:
         if self.flavour == "vulkan":
             args += ["-ngl", "999"]
         log = open(self.log_path, "wb")
-        self.proc = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT, cwd=str(exe.parent))
+        self.proc = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT, cwd=str(exe.parent),
+                                     preexec_fn=_die_with_parent)
+        atexit.register(self.stop)
         deadline = time.time() + timeout
         while time.time() < deadline:
             if self.proc.poll() is not None:
