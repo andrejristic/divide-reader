@@ -65,6 +65,7 @@ cp "$ROOT/LICENSE" "$APP/LICENSE.txt"
 
 echo "== Inno Setup"
 mkdir -p "$OUT"
-"$ISCC" "/DAppVersion=$VERSION" "/DSourceDir=$(cygpath -w "$APP")" "/DOutDir=$(cygpath -w "$OUT")" \
+# MSYS2_ARG_CONV_EXCL: Git Bash would otherwise turn the /D options into paths.
+MSYS2_ARG_CONV_EXCL="*" "$ISCC" "/DAppVersion=$VERSION" "/DSourceDir=$(cygpath -w "$APP")" "/DOutDir=$(cygpath -w "$OUT")" \
   "$(cygpath -w "$HERE/divide-reader.iss")"
 echo "built $OUT/DivideReader-Setup-$VERSION.exe"
