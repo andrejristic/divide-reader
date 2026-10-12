@@ -12,6 +12,7 @@ import os
 import shutil
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -21,12 +22,55 @@ from . import paths
 from .providers.catalog import LOCAL_PORT
 
 
+WINDOWS = sys.platform == "win32"
+SERVER_EXE = "llama-server.exe" if WINDOWS else "llama-server"
+
+
 def _die_with_parent() -> None:
     """Ask Linux to stop llama-server when this program exits, even if it is killed."""
     try:
         ctypes.CDLL("libc.so.6", use_errno=True).prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
     except OSError:
         pass
+
+
+_job = None
+
+
+def _kill_with_us(proc: subprocess.Popen) -> None:
+    """Windows: put llama-server in a job object that closes, and kills it, when this program exits."""
+    global _job
+    from ctypes import wintypes
+
+    class IoCounters(ctypes.Structure):
+        _fields_ = [(n, ctypes.c_ulonglong) for n in ("r", "w", "o", "rb", "wb", "ob")]
+
+    class BasicLimits(ctypes.Structure):
+        _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                    ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                    ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
+                    ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD),
+                    ("SchedulingClass", wintypes.DWORD)]
+
+    class ExtendedLimits(ctypes.Structure):
+        _fields_ = [("BasicLimitInformation", BasicLimits), ("IoInfo", IoCounters),
+                    ("ProcessMemoryLimit", ctypes.c_size_t), ("JobMemoryLimit", ctypes.c_size_t),
+                    ("PeakProcessMemoryUsed", ctypes.c_size_t), ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.CreateJobObjectW.restype = wintypes.HANDLE
+    k32.OpenProcess.restype = wintypes.HANDLE
+    if _job is None:
+        job = k32.CreateJobObjectW(None, None)
+        info = ExtendedLimits()
+        info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if not job or not k32.SetInformationJobObject(wintypes.HANDLE(job), 9, ctypes.byref(info), ctypes.sizeof(info)):
+            return
+        _job = job
+    handle = k32.OpenProcess(0x0101, False, proc.pid)  # PROCESS_SET_QUOTA | PROCESS_TERMINATE
+    if handle:
+        k32.AssignProcessToJobObject(wintypes.HANDLE(_job), wintypes.HANDLE(handle))
+        k32.CloseHandle(wintypes.HANDLE(handle))
 
 
 def has_vulkan_gpu() -> bool:
@@ -48,7 +92,7 @@ def find_server(prefer_gpu: bool | None = None) -> tuple[Path, str]:
     gpu = has_vulkan_gpu() if prefer_gpu is None else prefer_gpu
     order = ["vulkan", "cpu"] if gpu else ["cpu"]
     for flavour in order:
-        exe = root / flavour / "llama-server"
+        exe = root / flavour / SERVER_EXE
         if exe.is_file() and os.access(exe, os.X_OK):
             return exe, flavour
     exe = shutil.which("llama-server")
@@ -82,8 +126,13 @@ class LocalServer:
         if self.flavour == "vulkan":
             args += ["-ngl", "999"]
         log = open(self.log_path, "wb")
-        self.proc = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT, cwd=str(exe.parent),
-                                     preexec_fn=_die_with_parent)
+        if WINDOWS:
+            self.proc = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT, cwd=str(exe.parent),
+                                         creationflags=subprocess.CREATE_NO_WINDOW)
+            _kill_with_us(self.proc)
+        else:
+            self.proc = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT, cwd=str(exe.parent),
+                                         preexec_fn=_die_with_parent)
         atexit.register(self.stop)
         deadline = time.time() + timeout
         while time.time() < deadline:

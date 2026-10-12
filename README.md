@@ -2,7 +2,7 @@
 
 Divide Reader reads websites, books and files one sentence at a time. For each sentence it counts **S**: how many sides the speaker sorts the sentence's figures into. It finds every reading the text supports, not one verdict. The report shows the five most heard readings per sentence and gives measures you can compare between sites or between periods.
 
-**Install and use:** [GUIDE.md](GUIDE.md) (English) · [UPUTSTVO.md](UPUTSTVO.md) (srpski). The `.deb` package is under **Releases**.
+**Install and use:** [GUIDE.md](GUIDE.md) (English) · [UPUTSTVO.md](UPUTSTVO.md) (srpski). The `.deb` (Ubuntu / Debian) and the Windows installer `.exe` are under **Releases**.
 
 The full design is in `Divide-Reader-plan.docx` (in Serbian), one folder up.
 
@@ -66,6 +66,8 @@ bash packaging/build_deb.sh                # dist/divide-reader_<v>_amd64.deb
 ```
 
 A `.deb` runs only on systems with the same or newer glibc than the machine it was built on. The release build therefore runs on Ubuntu 22.04 (`.github/workflows/build-deb.yml`).
+
+The Windows installer is built on Windows, in Git Bash with Inno Setup 6: `bash packaging/build_exe.sh` writes `dist/DivideReader-Setup-<v>.exe`. The release build runs on GitHub's Windows runner (`.github/workflows/build-exe.yml`).
 
 ## Licence
 

@@ -1,8 +1,10 @@
 """Download local GGUF models with resume and SHA256 check."""
 from __future__ import annotations
 
+import ctypes
 import hashlib
-import os
+import shutil
+import sys
 import threading
 from pathlib import Path
 from typing import Callable
@@ -14,6 +16,17 @@ from .providers.catalog import LocalModel
 
 
 def total_ram_gb() -> float:
+    if sys.platform == "win32":
+        class MemoryStatus(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+        st = MemoryStatus(dwLength=ctypes.sizeof(MemoryStatus))
+        if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(st)):
+            return st.ullTotalPhys / 1024 ** 3
+        return 8.0
     try:
         with open("/proc/meminfo") as f:
             for line in f:
@@ -25,8 +38,7 @@ def total_ram_gb() -> float:
 
 
 def free_disk_gb(path: Path) -> float:
-    st = os.statvfs(path)
-    return st.f_bavail * st.f_frsize / 1024 ** 3
+    return shutil.disk_usage(path).free / 1024 ** 3
 
 
 def target_path(m: LocalModel) -> Path:
@@ -64,7 +76,7 @@ def download(m: LocalModel, progress: Callable[[int, int], None] | None = None,
     if sha256_file(part) != m.sha256:
         part.unlink()
         raise ValueError(f"{m.filename}: checksum mismatch, file deleted; try again")
-    part.rename(dest)
+    part.replace(dest)
     return dest
 
 

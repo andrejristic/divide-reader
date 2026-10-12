@@ -1,6 +1,6 @@
 [project]
 name = "divide-reader"
-version = "0.1.0"
+version = "0.1.1"
 description = "Counts how many sides a text sorts its figures into, sentence by sentence."
 readme = "README.md"
 license = "GPL-3.0-or-later"
