@@ -8,23 +8,29 @@ English version: [GUIDE.md](GUIDE.md)
 
 ## 1. Šta ti treba
 
-- Ubuntu 22.04 ili noviji, ili Debian 12 ili noviji, na 64-bitnom računaru (amd64).
+- Ubuntu 22.04 ili noviji, ili Debian 12 ili noviji, na 64-bitnom računaru (amd64); ili Windows 10/11, 64-bitni.
 - Oko 0,5 GB prostora za program. Lokalni model traži još 3–7 GB.
 - Za lokalni model barem 8 GB RAM-a. Ako ga nemaš, koristi online model.
 
 ## 2. Instalacija
 
-1. Preuzmi `divide-reader_0.1.0_amd64.deb`:
-   - sa GitHuba: stranica repozitorija → **Releases** → **v0.1.0**;
-   - ili na ovom računaru, gdje već stoji u folderu `~/Desktop/Brojac Strana/`.
+### Ubuntu / Debian
+
+1. Preuzmi `divide-reader_0.1.1_amd64.deb` sa GitHuba: stranica repozitorija → **Releases** → **v0.1.1**.
 2. Otvori terminal u folderu gdje je datoteka i pokreni:
 
    ```
-   sudo apt install ./divide-reader_0.1.0_amd64.deb
+   sudo apt install ./divide-reader_0.1.1_amd64.deb
    ```
 
    `apt` sam instalira biblioteke koje programu trebaju.
 3. Program se nalazi u meniju kao **Divide Reader**. Iz terminala se pokreće komandom `divide-reader`.
+
+### Windows
+
+1. Preuzmi `DivideReader-Setup-0.1.1.exe` iz istog izdanja.
+2. Pokreni ga. Instalira se samo za tvog korisnika i ne traži administratorska prava. Instalacija nije potpisana, pa SmartScreen pokaže „Windows protected your PC“: izaberi **More info**, pa **Run anyway**.
+3. Program se nalazi u Start meniju kao **Divide Reader**.
 
 Program je jezički podešen na engleski. Srpski (latinica) se bira gore desno, u polju **Language**.
 
@@ -122,14 +128,16 @@ Označi dva ili više izvora i klikni **Uporedi izabrane**. Raport stavlja mjere
 
 ## 8. Gdje su datoteke
 
-| Šta | Gdje |
-|---|---|
-| Raporti i baza (sva građa) | `~/.local/share/divide-reader/projects/default/` |
-| Lokalni modeli | `~/.local/share/divide-reader/models/` |
-| Podešavanja (bez ključeva) | `~/.config/divide-reader/settings.json` |
-| Dnevnik lokalnog modela | `~/.local/share/divide-reader/llama-server.log` |
+| Šta | Ubuntu / Debian | Windows |
+|---|---|---|
+| Raporti i baza (sva građa) | `~/.local/share/divide-reader/projects/default/` | `%LOCALAPPDATA%\divide-reader\projects\default\` |
+| Lokalni modeli | `~/.local/share/divide-reader/models/` | `%LOCALAPPDATA%\divide-reader\models\` |
+| Podešavanja (bez ključeva) | `~/.config/divide-reader/settings.json` | `%APPDATA%\divide-reader\settings.json` |
+| Dnevnik lokalnog modela | `~/.local/share/divide-reader/llama-server.log` | `%LOCALAPPDATA%\divide-reader\llama-server.log` |
 
 ## 9. Komandna linija
+
+Samo na Ubuntu / Debianu; program za Windows nema konzolu.
 
 ```
 divide-reader models                     # modeli i direktni linkovi
@@ -156,6 +164,8 @@ divide-reader check                      # pokrivenost prema ručnom brojanju
 sudo apt remove divide-reader
 rm -rf ~/.local/share/divide-reader ~/.config/divide-reader   # i tvoji podaci, ako hoćeš
 ```
+
+Na Windowsu: **Settings → Apps → Divide Reader → Uninstall**. Tvoji podaci ostaju u `%LOCALAPPDATA%\divide-reader` i `%APPDATA%\divide-reader`; obriši i te foldere ako hoćeš.
 
 ---
 

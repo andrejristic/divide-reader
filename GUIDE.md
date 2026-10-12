@@ -8,21 +8,29 @@ Srpska verzija: [UPUTSTVO.md](UPUTSTVO.md)
 
 ## 1. What you need
 
-- Ubuntu 22.04 or newer, or Debian 12 or newer, on a 64-bit PC (amd64).
+- Ubuntu 22.04 or newer, or Debian 12 or newer, on a 64-bit PC (amd64); or Windows 10/11, 64-bit.
 - About 0.5 GB of disk for the program. A local model needs another 3–7 GB.
 - At least 8 GB of RAM for a local model. Without that, use an online model.
 
 ## 2. Install
 
-1. Download `divide-reader_0.1.0_amd64.deb` from the repository page: **Releases** → **v0.1.0**.
+### Ubuntu / Debian
+
+1. Download `divide-reader_0.1.1_amd64.deb` from the repository page: **Releases** → **v0.1.1**.
 2. Open a terminal in the folder that holds the file and run:
 
    ```
-   sudo apt install ./divide-reader_0.1.0_amd64.deb
+   sudo apt install ./divide-reader_0.1.1_amd64.deb
    ```
 
    `apt` installs the libraries the program needs.
 3. The program appears in the menu as **Divide Reader**. From a terminal, start it with `divide-reader`.
+
+### Windows
+
+1. Download `DivideReader-Setup-0.1.1.exe` from the same release.
+2. Run it. It installs for your user only and needs no administrator rights. The installer is not code-signed, so SmartScreen shows "Windows protected your PC": choose **More info**, then **Run anyway**.
+3. The program appears in the Start menu as **Divide Reader**.
 
 The program starts in English. Switch to Serbian (Latin script) with **Language** at the top right.
 
@@ -120,14 +128,16 @@ Tick two or more sources and click **Compare selected**. The report puts their m
 
 ## 8. Where files are
 
-| What | Where |
-|---|---|
-| Reports and the store (all data) | `~/.local/share/divide-reader/projects/default/` |
-| Local models | `~/.local/share/divide-reader/models/` |
-| Settings (no keys) | `~/.config/divide-reader/settings.json` |
-| Local model log | `~/.local/share/divide-reader/llama-server.log` |
+| What | Ubuntu / Debian | Windows |
+|---|---|---|
+| Reports and the store (all data) | `~/.local/share/divide-reader/projects/default/` | `%LOCALAPPDATA%\divide-reader\projects\default\` |
+| Local models | `~/.local/share/divide-reader/models/` | `%LOCALAPPDATA%\divide-reader\models\` |
+| Settings (no keys) | `~/.config/divide-reader/settings.json` | `%APPDATA%\divide-reader\settings.json` |
+| Local model log | `~/.local/share/divide-reader/llama-server.log` | `%LOCALAPPDATA%\divide-reader\llama-server.log` |
 
 ## 9. Command line
+
+Ubuntu / Debian only; the Windows program has no console.
 
 ```
 divide-reader models                     # models and direct download links
@@ -154,6 +164,8 @@ divide-reader check                      # coverage against manual counts
 sudo apt remove divide-reader
 rm -rf ~/.local/share/divide-reader ~/.config/divide-reader   # your data too, if you want
 ```
+
+On Windows: **Settings → Apps → Divide Reader → Uninstall**. Your data stays in `%LOCALAPPDATA%\divide-reader` and `%APPDATA%\divide-reader`; delete those folders too if you want.
 
 ---
 
