@@ -1,0 +1,61 @@
+# Builds the Windows installer on GitHub's Windows runner, then installs it
+# silently and checks that the program starts, that the bundled llama-server
+# runs, and that llama-server is stopped when the program exits.
+name: build-exe
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  exe:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          python -m venv .venv
+          .venv/Scripts/pip install -e ".[dev]"
+      - name: Test
+        run: .venv/Scripts/python -m pytest -q
+      - name: Inno Setup
+        run: |
+          if [ ! -f "/c/Program Files (x86)/Inno Setup 6/ISCC.exe" ]; then choco install innosetup --no-progress -y; fi
+      - name: Build installer
+        run: bash packaging/build_exe.sh
+      - name: Install silently
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist\DivideReader-Setup-*.exe | Select-Object -First 1
+          Start-Process $setup.FullName -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',"/DIR=$env:RUNNER_TEMP\dr" -Wait
+          if (-not (Test-Path "$env:RUNNER_TEMP\dr\divide-reader.exe")) { throw "not installed" }
+      - name: Bundled llama-server runs
+        shell: pwsh
+        run: |
+          foreach ($f in 'cpu','vulkan') { & "$env:RUNNER_TEMP\dr\llama\$f\llama-server.exe" --version; if ($LASTEXITCODE -ne 0 -and $f -eq 'cpu') { throw "llama-server ($f) failed" } }
+      - name: Program starts
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $p = Start-Process "$env:RUNNER_TEMP\dr\divide-reader.exe" -PassThru
+          Start-Sleep -Seconds 20
+          if ($p.HasExited) { throw "divide-reader exited with code $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+      - name: llama-server stops with the program
+        shell: pwsh
+        run: |
+          $code = 'import subprocess, sys; from divide_reader import localserver as ls; p = subprocess.Popen(["ping", "-n", "60", "127.0.0.1"], stdout=subprocess.DEVNULL); ls._kill_with_us(p); print(p.pid)'
+          $child = & .venv\Scripts\python.exe -c $code
+          Start-Sleep -Seconds 2
+          if (Get-Process -Id $child -ErrorAction SilentlyContinue) { throw "child $child survived its parent" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: divide-reader-exe
+          path: dist/*.exe

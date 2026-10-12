@@ -8,8 +8,14 @@ from pathlib import Path
 APP = "divide-reader"
 
 
+WINDOWS = sys.platform == "win32"
+
+
 def data_dir() -> Path:
-    base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+    if WINDOWS:
+        base = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
+    else:
+        base = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
     d = base / APP
     d.mkdir(parents=True, exist_ok=True)
     return d
@@ -28,7 +34,10 @@ def projects_dir() -> Path:
 
 
 def config_file() -> Path:
-    base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    if WINDOWS:
+        base = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+    else:
+        base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
     d = base / APP
     d.mkdir(parents=True, exist_ok=True)
     return d / "settings.json"
@@ -45,6 +54,6 @@ def install_dir() -> Path:
 
 
 def llama_dir() -> Path:
-    """Bundled llama.cpp builds: <install>/llama/{cpu,vulkan}/llama-server."""
+    """Bundled llama.cpp builds: <install>/llama/{cpu,vulkan}/llama-server[.exe]."""
     env = os.environ.get("DIVIDE_READER_LLAMA")
     return Path(env) if env else install_dir() / "llama"
